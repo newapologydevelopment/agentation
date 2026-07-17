@@ -44,7 +44,7 @@ The toolbar appears in the bottom-right corner. Click to activate, then click an
 - **Pinned screenshots** – Capture a contextual page image for every note, with a numbered target pin
 - **Notion destination picker** – Search and select the exact page before exporting
 - **One-click Notion export** – Upload screenshots and append the complete review to the chosen page
-- **Optional OpenRouter context** – Add a restrained rationale and acceptance criteria when a note needs more implementation detail
+- **Optional OpenRouter context** – Read the comment and pinned screenshot to identify the exact target and required action
 - **Dark/light mode** – Matches your preference or set manually
 - **Zero dependencies** – Pure CSS animations, no runtime libraries
 
@@ -103,22 +103,24 @@ The page selector only lists pages that the integration can access. If a page is
 OpenRouter runs between screenshot capture and Notion block creation. It is off by default for every export. When a reviewer enables **Add implementation context**, the companion server sends the model:
 
 - the original human note;
+- the pinned screenshot;
 - reviewed page URL;
 - element name and DOM path;
 - selected or nearby text;
 - accessibility, React component, and source-file metadata when available.
 
-The model does **not** receive the screenshot, page HTML, Notion token, or OpenRouter key. It returns structured JSON containing a concise summary, rationale, and acceptance-criteria list. The server appends that context beneath the unchanged human note.
+The model locates the numbered pin, identifies the UI element or region beneath it, and connects that target to the comment. It returns four compact fields: target, pin location, action, and an optional clarification. The server appends those fields beneath the unchanged human note.
+
+The model does not receive page HTML, the Notion token, or the OpenRouter key.
 
 Configure it only on the server:
 
 ```bash
 OPENROUTER_API_KEY=sk-or-... \
-OPENROUTER_MODEL=openai/gpt-4.1-mini \
 pnpm --filter agentation-mcp start
 ```
 
-`OPENROUTER_MODEL` is optional. The default is `openai/gpt-4.1-mini`.
+The default model is `google/gemma-4-26b-a4b-it:free`, the lowest-cost suitable vision model in OpenRouter's current catalog. The server falls back to `google/gemini-2.5-flash-lite` if the free route has no capacity. Override either choice with `OPENROUTER_MODEL` or `OPENROUTER_FALLBACK_MODEL`.
 
 ## Export flow
 

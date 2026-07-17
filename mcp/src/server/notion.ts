@@ -7,6 +7,8 @@ import type { Annotation } from "../types.js";
 const NOTION_API = "https://api.notion.com/v1";
 const OPENROUTER_API = "https://openrouter.ai/api/v1/chat/completions";
 const notionVersion = process.env.NOTION_API_VERSION || "2025-09-03";
+const DEFAULT_OPENROUTER_MODEL = "google/gemma-4-26b-a4b-it:free";
+const DEFAULT_OPENROUTER_FALLBACK_MODEL = "google/gemini-2.5-flash-lite";
 
 type SavedNotionConnection = {
   accessToken: string;
@@ -79,7 +81,7 @@ export function getNotionStatus() {
     ),
     workspaceName: connection?.workspaceName,
     openRouterConfigured: !!process.env.OPENROUTER_API_KEY,
-    openRouterModel: process.env.OPENROUTER_MODEL || "openai/gpt-4.1-mini",
+    openRouterModel: process.env.OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL,
   };
 }
 
@@ -169,61 +171,111 @@ export async function searchNotionPages(query = "") {
   }));
 }
 
-type Enrichment = { summary: string; rationale: string; acceptanceCriteria: string[] };
+type Enrichment = {
+  target: string;
+  pinLocation: string;
+  guidance: string;
+  clarification: string | null;
+};
 
-async function enrichAnnotation(annotation: Annotation, pageUrl: string): Promise<Enrichment | null> {
+async function enrichAnnotation(
+  annotation: Annotation,
+  pageUrl: string,
+  screenshot: string,
+): Promise<Enrichment | null> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) return null;
-  const response = await fetch(OPENROUTER_API, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": pageUrl,
-      "X-Title": "Agentation Design Feedback",
-    },
-    body: JSON.stringify({
-      model: process.env.OPENROUTER_MODEL || "openai/gpt-4.1-mini",
-      temperature: 0.2,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content: "You clarify meticulous human design feedback without inventing requirements. Return JSON with summary, rationale, and acceptanceCriteria (string array). Preserve the author's intent and call out uncertainty.",
-        },
-        {
-          role: "user",
-          content: JSON.stringify({
-            feedback: annotation.comment,
-            pageUrl,
-            element: annotation.element,
-            elementPath: annotation.elementPath,
-            selectedText: annotation.selectedText,
-            nearbyText: annotation.nearbyText?.slice(0, 1200),
-            accessibility: annotation.accessibility,
-            reactComponents: annotation.reactComponents,
-            sourceFile: (annotation as Annotation & { sourceFile?: string }).sourceFile,
-          }),
-        },
-      ],
-    }),
-  });
-  if (!response.ok) throw new Error(`OpenRouter enrichment failed (${response.status})`);
-  const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
-  const content = payload.choices?.[0]?.message?.content;
-  if (!content) return null;
-  try {
-    const parsed = JSON.parse(content) as Enrichment;
-    return {
-      summary: String(parsed.summary || ""),
-      rationale: String(parsed.rationale || ""),
-      acceptanceCriteria: Array.isArray(parsed.acceptanceCriteria)
-        ? parsed.acceptanceCriteria.map(String).slice(0, 8)
-        : [],
-    };
-  } catch {
-    throw new Error("OpenRouter returned invalid structured context");
+
+  const primaryModel = process.env.OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL;
+  const fallbackModel = process.env.OPENROUTER_FALLBACK_MODEL || DEFAULT_OPENROUTER_FALLBACK_MODEL;
+  const models = primaryModel === fallbackModel ? [primaryModel] : [primaryModel, fallbackModel];
+  let lastError = "OpenRouter enrichment failed";
+
+  for (const model of models) {
+    const response = await fetch(OPENROUTER_API, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": pageUrl,
+        "X-Title": "Agentation Design Feedback",
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.1,
+        max_tokens: 220,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: [
+              "Interpret one human design-review note and its pinned screenshot.",
+              "Locate the numbered pin, identify the exact UI element or region beneath it, and connect that target to the author's comment.",
+              "Write compact developer guidance. Add a clarification only when the note or target is ambiguous.",
+              "Do not invent requirements, repeat the comment, praise the design, or add generic advice.",
+              "Return JSON only: {\"target\":string,\"pinLocation\":string,\"guidance\":string,\"clarification\":string|null}.",
+            ].join(" "),
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({
+                  comment: annotation.comment,
+                  pageUrl,
+                  pinNumber: "The screenshot contains the numbered pin for this note.",
+                  capturedElement: annotation.element,
+                  elementPath: annotation.elementPath,
+                  selectedText: annotation.selectedText,
+                  nearbyText: annotation.nearbyText?.slice(0, 900),
+                  accessibility: annotation.accessibility,
+                  reactComponents: annotation.reactComponents,
+                  sourceFile: (annotation as Annotation & { sourceFile?: string }).sourceFile,
+                }),
+              },
+              { type: "image_url", image_url: { url: screenshot, detail: "high" } },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      lastError = `OpenRouter model ${model} failed (${response.status})`;
+      continue;
+    }
+
+    const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+    const content = payload.choices?.[0]?.message?.content;
+    if (!content) {
+      lastError = `OpenRouter model ${model} returned no context`;
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(content) as Enrichment;
+      const target = String(parsed.target || "").trim();
+      const pinLocation = String(parsed.pinLocation || "").trim();
+      const guidance = String(parsed.guidance || "").trim();
+      if (!target || !pinLocation || !guidance) {
+        lastError = `OpenRouter model ${model} returned incomplete context`;
+        continue;
+      }
+      return {
+        target: target.slice(0, 300),
+        pinLocation: pinLocation.slice(0, 300),
+        guidance: guidance.slice(0, 700),
+        clarification: parsed.clarification
+          ? String(parsed.clarification).trim().slice(0, 400)
+          : null,
+      };
+    } catch {
+      lastError = `OpenRouter model ${model} returned invalid JSON`;
+    }
   }
+
+  throw new Error(lastError);
 }
 
 async function uploadScreenshot(dataUrl: string, filename: string): Promise<string> {
@@ -296,7 +348,7 @@ export async function exportToNotion(input: {
     if (!annotation?.comment || !screenshot) throw new Error(`Note ${index + 1} is incomplete`);
     const uploadId = await uploadScreenshot(screenshot, `feedback-${index + 1}.jpg`);
     const context = input.enrichWithOpenRouter
-      ? await enrichAnnotation(annotation, input.pageUrl)
+      ? await enrichAnnotation(annotation, input.pageUrl, screenshot)
       : null;
     if (context) enriched++;
 
@@ -311,15 +363,12 @@ export async function exportToNotion(input: {
     if (annotation.nearbyText && !annotation.selectedText) blocks.push(paragraph(`Nearby content: ${annotation.nearbyText.slice(0, 1200)}`));
     if (context) {
       blocks.push(
-        { object: "block", type: "heading_3", heading_3: { rich_text: richText("Implementation context") } },
-        paragraph(context.summary),
-        paragraph(`Why this matters: ${context.rationale}`),
-        ...context.acceptanceCriteria.map((criterion) => ({
-          object: "block",
-          type: "bulleted_list_item",
-          bulleted_list_item: { rich_text: richText(criterion) },
-        })),
+        { object: "block", type: "heading_3", heading_3: { rich_text: richText("Pin context") } },
+        paragraph(`Target: ${context.target}`),
+        paragraph(`Pin location: ${context.pinLocation}`),
+        paragraph(`Action: ${context.guidance}`),
       );
+      if (context.clarification) blocks.push(paragraph(`Clarify: ${context.clarification}`));
     }
   }
 

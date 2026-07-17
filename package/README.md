@@ -43,7 +43,7 @@ Run the companion server with either `NOTION_TOKEN`, or the three OAuth variable
 <Agentation notionEndpoint="http://localhost:4747" />
 ```
 
-Optional OpenRouter enrichment is enabled server-side with `OPENROUTER_API_KEY` and, optionally, `OPENROUTER_MODEL`. The model receives text metadata only and returns a summary, rationale, and acceptance criteria. It never receives screenshots or integration secrets. See the repository README for the complete setup and permission model.
+Optional OpenRouter enrichment is enabled server-side with `OPENROUTER_API_KEY`. The default free vision model reads the comment and pinned screenshot, then returns the exact target, pin location, action, and any needed clarification. It never receives page HTML or integration secrets. Override the default and fallback with `OPENROUTER_MODEL` and `OPENROUTER_FALLBACK_MODEL`. See the repository README for the complete setup and permission model.
 
 ## Features
 

@@ -193,7 +193,7 @@ export function NotionExportPanel({
                 <strong>Add implementation context</strong>
                 <small>
                   {status.openRouterConfigured
-                    ? `${status.openRouterModel || "OpenRouter"} adds rationale and acceptance criteria from note metadata.`
+                    ? `${status.openRouterModel || "OpenRouter"} reads the note and pinned screenshot, then identifies the target and action.`
                     : "Optional — set OPENROUTER_API_KEY on the server."}
                 </small>
               </span>
