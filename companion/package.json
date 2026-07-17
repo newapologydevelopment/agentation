@@ -1,0 +1,15 @@
+{
+  "name": "pinpoint-companion",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@11.6.2",
+  "scripts": {
+    "build": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@vercel/node": "^5.5.23",
+    "typescript": "^5.9.3"
+  }
+}

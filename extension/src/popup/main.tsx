@@ -18,6 +18,7 @@ function normalizeEndpoint(value: string): string {
 function App() {
   const [settings, setSettings] = useState<ExtensionSettings>(DEFAULT_SETTINGS);
   const [tabUrl, setTabUrl] = useState<string>();
+  const [tabId, setTabId] = useState<number>();
   const [ready, setReady] = useState(false);
   const [endpointDraft, setEndpointDraft] = useState(DEFAULT_SETTINGS.serverEndpoint);
   const [connection, setConnection] = useState<ConnectionState>("idle");
@@ -36,6 +37,7 @@ function App() {
       setSettings(stored);
       setEndpointDraft(stored.serverEndpoint);
       setTabUrl(tabs[0]?.url);
+      setTabId(tabs[0]?.id);
       setReady(true);
       void checkConnection(stored.serverEndpoint);
     });
@@ -61,7 +63,19 @@ function App() {
     };
     setSettings(next);
     await writeSettings(next);
-    setMessage(!enabled ? "Toolbar enabled on this site." : "Toolbar disabled on this site.");
+    if (!enabled && tabId !== undefined) {
+      try {
+        const files = chrome.runtime.getManifest().content_scripts?.flatMap((script) => script.js ?? []) ?? [];
+        if (files.length > 0) {
+          await chrome.scripting.executeScript({ target: { tabId }, files });
+        }
+        setMessage("Toolbar is ready on this page.");
+      } catch {
+        setMessage("Toolbar enabled. Reload this page once to show it.");
+      }
+    } else {
+      setMessage("Toolbar hidden on this site.");
+    }
   }
 
   async function saveEndpoint(): Promise<void> {
@@ -127,7 +141,7 @@ function App() {
       {message && <p className="message" role="status">{message}</p>}
 
       <footer>
-        <span>Enable a site, close this popup, then click the floating toolbar.</span>
+        <span>Enable this site, then close the popup. The toolbar appears at the bottom-right.</span>
       </footer>
     </main>
   );

@@ -1,0 +1,24 @@
+{
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".",
+  "functions": {
+    "api/*.ts": {
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/:access/integrations/notion/status",
+      "destination": "/api/status?access=:access"
+    },
+    {
+      "source": "/api/:access/integrations/notion/pages",
+      "destination": "/api/pages?access=:access"
+    },
+    {
+      "source": "/api/:access/integrations/notion/export",
+      "destination": "/api/export?access=:access"
+    }
+  ]
+}

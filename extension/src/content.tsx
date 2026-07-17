@@ -3,6 +3,7 @@ import { Agentation } from "agentation-src";
 import { readSettings, STORAGE_KEY } from "./settings";
 
 const MOUNT_ID = "pinpoint-studio-feedback-extension";
+const runtime = globalThis as typeof globalThis & { __pinpointStudioFeedbackLoaded__?: boolean };
 let root: Root | null = null;
 let mountNode: HTMLDivElement | null = null;
 
@@ -38,10 +39,13 @@ async function syncToolbar(): Promise<void> {
   );
 }
 
-void syncToolbar();
+if (!runtime.__pinpointStudioFeedbackLoaded__) {
+  runtime.__pinpointStudioFeedbackLoaded__ = true;
+  void syncToolbar();
 
-chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName === "sync" && changes[STORAGE_KEY]) void syncToolbar();
-});
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === "sync" && changes[STORAGE_KEY]) void syncToolbar();
+  });
 
-window.addEventListener("pageshow", () => void syncToolbar());
+  window.addEventListener("pageshow", () => void syncToolbar());
+}

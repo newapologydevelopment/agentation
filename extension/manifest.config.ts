@@ -7,7 +7,7 @@ export default defineManifest({
   short_name: "Pinpoint",
   version: packageJson.version,
   description: "Pin meticulous design feedback to any page and export it to Notion.",
-  permissions: ["storage", "activeTab"],
+  permissions: ["storage", "activeTab", "scripting"],
   host_permissions: ["http://*/*", "https://*/*"],
   icons: {
     16: "icons/icon-16.png",

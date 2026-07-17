@@ -1,5 +1,6 @@
 export const STORAGE_KEY = "pinpointStudioFeedback";
-export const DEFAULT_SERVER_ENDPOINT = "http://localhost:4747";
+export const DEFAULT_SERVER_ENDPOINT =
+  import.meta.env.VITE_PINPOINT_ENDPOINT || "http://localhost:4747";
 
 export type ExtensionSettings = {
   enabledOrigins: Record<string, boolean>;
