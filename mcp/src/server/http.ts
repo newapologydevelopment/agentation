@@ -26,6 +26,13 @@ import {
 } from "./store.js";
 import { eventBus } from "./events.js";
 import type { Annotation, AFSEvent, ActionRequest } from "../types.js";
+import {
+  completeNotionOAuth,
+  createNotionOAuthUrl,
+  exportToNotion,
+  getNotionStatus,
+  searchNotionPages,
+} from "./notion.js";
 
 /**
  * Log to stderr so diagnostic output never corrupts the MCP stdio channel.
@@ -209,6 +216,11 @@ function sendError(res: ServerResponse, status: number, message: string): void {
   sendJson(res, status, { error: message });
 }
 
+function sendHtml(res: ServerResponse, status: number, html: string): void {
+  res.writeHead(status, { "Content-Type": "text/html; charset=utf-8" });
+  res.end(html);
+}
+
 /**
  * Handle CORS preflight.
  */
@@ -316,6 +328,66 @@ type RouteHandler = (
   res: ServerResponse,
   params: Record<string, string>
 ) => Promise<void>;
+
+const notionStatusHandler: RouteHandler = async (_req, res) => {
+  sendJson(res, 200, getNotionStatus());
+};
+
+const notionConnectHandler: RouteHandler = async (_req, res) => {
+  try {
+    const status = getNotionStatus();
+    if (status.connected) {
+      return sendHtml(res, 200, "<!doctype html><title>Notion connected</title><p>Notion is connected. You can close this window.</p><script>window.close()</script>");
+    }
+    res.writeHead(302, { Location: createNotionOAuthUrl() });
+    res.end();
+  } catch (err) {
+    sendError(res, 400, (err as Error).message);
+  }
+};
+
+const notionCallbackHandler: RouteHandler = async (req, res) => {
+  try {
+    const url = new URL(req.url || "/", "http://localhost");
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
+    if (!code || !state) throw new Error("Missing Notion authorization code or state");
+    await completeNotionOAuth(code, state);
+    sendHtml(
+      res,
+      200,
+      "<!doctype html><meta name=\"viewport\" content=\"width=device-width\"><title>Notion connected</title><style>body{font:16px system-ui;display:grid;place-items:center;min-height:90vh;background:#111;color:#fff}main{text-align:center}b{display:block;font-size:22px;margin-bottom:8px}</style><main><b>Notion connected</b><span>This window will close automatically.</span></main><script>setTimeout(()=>window.close(),700)</script>",
+    );
+  } catch (err) {
+    sendHtml(res, 400, `<!doctype html><title>Connection failed</title><p>${escapeHtml((err as Error).message)}</p>`);
+  }
+};
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[character] || character);
+}
+
+const notionPagesHandler: RouteHandler = async (req, res) => {
+  try {
+    const url = new URL(req.url || "/", "http://localhost");
+    const pages = await searchNotionPages(url.searchParams.get("query") || "");
+    sendJson(res, 200, { pages });
+  } catch (err) {
+    sendError(res, 400, (err as Error).message);
+  }
+};
+
+const notionExportHandler: RouteHandler = async (req, res) => {
+  try {
+    const body = await parseBody<Parameters<typeof exportToNotion>[0]>(req);
+    const result = await exportToNotion(body);
+    sendJson(res, 200, result);
+  } catch (err) {
+    sendError(res, 400, (err as Error).message);
+  }
+};
 
 /**
  * POST /sessions - Create a new session.
@@ -815,6 +887,36 @@ type Route = {
 };
 
 const routes: Route[] = [
+  {
+    method: "GET",
+    pattern: /^\/integrations\/notion\/status$/,
+    handler: notionStatusHandler,
+    paramNames: [],
+  },
+  {
+    method: "GET",
+    pattern: /^\/integrations\/notion\/connect$/,
+    handler: notionConnectHandler,
+    paramNames: [],
+  },
+  {
+    method: "GET",
+    pattern: /^\/integrations\/notion\/callback$/,
+    handler: notionCallbackHandler,
+    paramNames: [],
+  },
+  {
+    method: "GET",
+    pattern: /^\/integrations\/notion\/pages$/,
+    handler: notionPagesHandler,
+    paramNames: [],
+  },
+  {
+    method: "POST",
+    pattern: /^\/integrations\/notion\/export$/,
+    handler: notionExportHandler,
+    paramNames: [],
+  },
   {
     method: "GET",
     pattern: /^\/events$/,

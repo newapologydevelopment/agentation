@@ -88,6 +88,7 @@ import styles from "./styles.module.scss";
 import { generateOutput } from "../../utils/generate-output";
 import { AnnotationMarker, ExitingMarker, PendingMarker } from "./annotation-marker";
 import { SettingsPanel } from "./settings-panel";
+import { NotionExportPanel } from "../notion-export-panel";
 
 /**
  * Composes element identification with React component detection.
@@ -313,6 +314,10 @@ export type PageFeedbackToolbarCSSProps = {
   webhookUrl?: string;
   /** Custom class name applied to the toolbar container. Use to adjust positioning or z-index. */
   className?: string;
+  /** Companion server URL for Notion export. Defaults to endpoint or http://localhost:4747. */
+  notionEndpoint?: string;
+  /** Called after a successful Notion export. */
+  onNotionExport?: () => void;
 };
 
 /** Alias for PageFeedbackToolbarCSSProps */
@@ -338,6 +343,8 @@ export function PageFeedbackToolbarCSS({
   onSessionCreated,
   webhookUrl,
   className: userClassName,
+  notionEndpoint,
+  onNotionExport,
 }: PageFeedbackToolbarCSSProps = {}) {
   const [isActive, setIsActive] = useState(false);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
@@ -428,6 +435,7 @@ export function PageFeedbackToolbarCSS({
   const [mounted, setMounted] = useState(false);
   const [isFrozen, setIsFrozen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showNotionExport, setShowNotionExport] = useState(false);
   const [showSettingsVisible, setShowSettingsVisible] = useState(false);
   const [settingsPage, setSettingsPage] = useState<"main" | "automations">(
     "main",
@@ -632,6 +640,7 @@ const [settings, setSettings] = useState<ToolbarSettings>(() => {
 
   const pathname =
     typeof window !== "undefined" ? window.location.pathname : "/";
+  const effectiveNotionEndpoint = notionEndpoint || endpoint || "http://localhost:4747";
 
   // Handle showSettings changes with exit animation
   useEffect(() => {
@@ -3668,6 +3677,7 @@ const [settings, setSettings] = useState<ToolbarSettings>(() => {
                 <span className={styles.shortcut}>D</span>
               </span>
             </div>
+
             */}
 
             <div className={styles.buttonWrapper}>
@@ -3733,6 +3743,23 @@ const [settings, setSettings] = useState<ToolbarSettings>(() => {
                 {isDesignMode && blankCanvas ? "Copy layout" : "Copy feedback"}
                 <span className={styles.shortcut}>C</span>
               </span>
+            </div>
+
+            <div className={styles.buttonWrapper}>
+              <button
+                className={styles.controlButton}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  hideTooltipsUntilMouseLeave();
+                  setShowSettings(false);
+                  setShowNotionExport(true);
+                }}
+                disabled={!hasAnnotations || isDesignMode}
+                aria-label="Export feedback to Notion"
+              >
+                <span className={styles.notionIcon}>N</span>
+              </button>
+              <span className={styles.buttonTooltip}>Export to Notion</span>
             </div>
 
             {/* Send button - only visible when webhook URL is available AND auto-send is off */}
@@ -3997,6 +4024,19 @@ const [settings, setSettings] = useState<ToolbarSettings>(() => {
             onSettingsPageChange={setSettingsPage}
             onHideToolbar={hideToolbarTemporarily}
           />
+
+          {showNotionExport && (
+            <NotionExportPanel
+              endpoint={effectiveNotionEndpoint}
+              annotations={annotations}
+              pageTitle={typeof document !== "undefined" ? document.title || pathname : pathname}
+              pageUrl={typeof window !== "undefined" ? window.location.href : pathname}
+              accentColor={COLOR_OPTIONS.find((color) => color.id === settings.annotationColorId)?.srgb || "#0088ff"}
+              lightMode={!isDarkMode}
+              onClose={() => setShowNotionExport(false)}
+              onExported={onNotionExport}
+            />
+          )}
         </div>
       </div>
 

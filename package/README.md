@@ -33,6 +33,18 @@ function App() {
 
 The toolbar appears in the bottom-right corner. Click to activate, then click any element to annotate it.
 
+## Human design review + Notion
+
+This fork adds a Notion-first export path for studio feedback. Every annotation is exported with the untouched human note, useful element/page context, and a contextual page screenshot with a numbered pin on the exact target.
+
+Run the companion server with either `NOTION_TOKEN`, or the three OAuth variables `NOTION_CLIENT_ID`, `NOTION_CLIENT_SECRET`, and `NOTION_REDIRECT_URI`. Then click the **N** button, search for the exact destination page, and export.
+
+```tsx
+<Agentation notionEndpoint="http://localhost:4747" />
+```
+
+Optional OpenRouter enrichment is enabled server-side with `OPENROUTER_API_KEY` and, optionally, `OPENROUTER_MODEL`. The model receives text metadata only and returns a summary, rationale, and acceptance criteria. It never receives screenshots or integration secrets. See the repository README for the complete setup and permission model.
+
 ## Features
 
 - **Click to annotate** – Click any element with automatic selector identification

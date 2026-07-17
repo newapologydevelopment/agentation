@@ -1,7 +1,7 @@
 {
   "name": "agentation",
   "version": "3.0.2",
-  "description": "Visual feedback for AI coding agents",
+  "description": "Pinned visual feedback for human design reviews",
   "sideEffects": false,
   "license": "PolyForm-Shield-1.0.0",
   "main": "./dist/index.js",
@@ -30,6 +30,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "pnpm build"
+  },
+  "dependencies": {
+    "modern-screenshot": "^4.6.6"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

@@ -1,7 +1,7 @@
 {
   "name": "agentation-mcp",
   "version": "1.2.0",
-  "description": "MCP server for Agentation - visual feedback for AI coding agents",
+  "description": "Companion server for Agentation feedback, Notion export, and optional OpenRouter context",
   "license": "PolyForm-Shield-1.0.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

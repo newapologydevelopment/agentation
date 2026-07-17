@@ -25,6 +25,107 @@ async function getDomCapture() {
 }
 
 /**
+ * Capture a page-sized context image for a single annotation and draw a
+ * numbered pin at the exact feedback location. The crop is one viewport tall,
+ * centered around the annotation where possible, so the image remains useful
+ * (and reasonably sized) when embedded in documents such as Notion pages.
+ */
+export async function capturePinnedScreenshot(
+  annotation: {
+    x: number;
+    y: number;
+    isFixed?: boolean;
+    boundingBox?: { x: number; y: number; width: number; height: number };
+  },
+  pinNumber: number,
+  accentColor = "#0088ff",
+): Promise<string | null> {
+  const mod = await getDomCapture();
+  if (!mod || typeof document === "undefined") return null;
+
+  const root = document.querySelector("[data-agentation-root]") as HTMLElement | null;
+  const previousVisibility = root?.style.visibility;
+  if (root) root.style.visibility = "hidden";
+
+  try {
+    const source = await mod.domToCanvas(document.body, {
+      backgroundColor: getComputedStyle(document.body).backgroundColor || "#ffffff",
+      timeout: 10000,
+    });
+
+    const documentWidth = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
+    const documentHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+    const ratioX = source.width / Math.max(1, documentWidth);
+    const ratioY = source.height / Math.max(1, documentHeight);
+
+    const pinDocumentX = annotation.boundingBox
+      ? annotation.boundingBox.x + annotation.boundingBox.width / 2
+      : (annotation.x / 100) * window.innerWidth;
+    const pinDocumentY = annotation.isFixed
+      ? window.scrollY + annotation.y
+      : annotation.boundingBox
+        ? annotation.boundingBox.y + annotation.boundingBox.height / 2
+        : annotation.y;
+
+    const cropWidth = Math.min(documentWidth, Math.max(720, window.innerWidth));
+    const cropHeight = Math.min(documentHeight, Math.max(540, window.innerHeight));
+    const cropX = Math.max(0, Math.min(documentWidth - cropWidth, pinDocumentX - cropWidth / 2));
+    const cropY = Math.max(0, Math.min(documentHeight - cropHeight, pinDocumentY - cropHeight / 2));
+    const outputScale = Math.min(1, 1280 / cropWidth);
+    const outputWidth = Math.max(1, Math.round(cropWidth * outputScale));
+    const outputHeight = Math.max(1, Math.round(cropHeight * outputScale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = outputWidth;
+    canvas.height = outputHeight;
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+
+    context.drawImage(
+      source,
+      cropX * ratioX,
+      cropY * ratioY,
+      cropWidth * ratioX,
+      cropHeight * ratioY,
+      0,
+      0,
+      outputWidth,
+      outputHeight,
+    );
+
+    const pinX = (pinDocumentX - cropX) * outputScale;
+    const pinY = (pinDocumentY - cropY) * outputScale;
+    const radius = Math.max(13, 17 * outputScale);
+
+    context.save();
+    context.shadowColor = "rgba(0, 0, 0, 0.35)";
+    context.shadowBlur = 8;
+    context.shadowOffsetY = 3;
+    context.fillStyle = accentColor;
+    context.beginPath();
+    context.arc(pinX, pinY, radius, 0, Math.PI * 2);
+    context.fill();
+    context.shadowColor = "transparent";
+    context.lineWidth = Math.max(2, 2.5 * outputScale);
+    context.strokeStyle = "#ffffff";
+    context.stroke();
+    context.fillStyle = "#ffffff";
+    context.font = `700 ${Math.max(12, 15 * outputScale)}px system-ui, sans-serif`;
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(String(pinNumber), pinX, pinY + 0.5);
+    context.restore();
+
+    return canvas.toDataURL("image/jpeg", 0.88);
+  } catch (error) {
+    console.warn("[Agentation] Pinned screenshot capture failed:", error);
+    return null;
+  } finally {
+    if (root) root.style.visibility = previousVisibility ?? "";
+  }
+}
+
+/**
  * Check whether DOM capture is available (modern-screenshot is installed).
  * Returns a cached result after the first check.
  */
