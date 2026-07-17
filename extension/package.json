@@ -1,0 +1,28 @@
+{
+  "name": "pinpoint-studio-feedback-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build:agentation": "npm --prefix ../package run build",
+    "build": "npm run build:agentation && tsc --noEmit && vite build",
+    "package": "npm run build && cd dist && zip -qr ../pinpoint-studio-feedback.zip ."
+  },
+  "dependencies": {
+    "modern-screenshot": "^4.6.6",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.7.1",
+    "@types/chrome": "^0.1.4",
+    "@types/node": "^24.10.1",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^5.2.0",
+    "sass": "^1.97.3",
+    "typescript": "^5.9.3",
+    "vite": "^8.1.5"
+  }
+}
