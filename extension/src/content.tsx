@@ -3,6 +3,7 @@ import { Agentation } from "agentation-src";
 import { isOriginEnabled, readSettings, STORAGE_KEY } from "./settings";
 
 const MOUNT_ID = "pinpoint-studio-feedback-extension";
+const TOOLBAR_HIDDEN_SESSION_KEY = "agentation-session-toolbar-hidden";
 type PinpointRuntime = {
   root: Root | null;
   mountNode: HTMLDivElement | null;
@@ -66,14 +67,34 @@ async function syncToolbar(): Promise<void> {
   );
 }
 
+function clearHiddenState(): void {
+  try { sessionStorage.removeItem(TOOLBAR_HIDDEN_SESSION_KEY); } catch { /* Storage may be blocked. */ }
+}
+
+async function showToolbar(): Promise<boolean> {
+  clearHiddenState();
+  unmount();
+  await syncToolbar();
+
+  for (let frame = 0; frame < 20; frame++) {
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    const toolbar = document.querySelector<HTMLElement>("[data-agentation-toolbar]");
+    if (!toolbar) continue;
+    const activator = toolbar.querySelector<HTMLElement>('[role="button"][title="Start feedback mode"]');
+    activator?.click();
+    return true;
+  }
+  return false;
+}
+
 state.storageListener = (changes, areaName) => {
   if (areaName === "sync" && changes[STORAGE_KEY]) void syncToolbar();
 };
 state.pageShowListener = () => void syncToolbar();
 state.messageListener = (message, _sender, sendResponse) => {
-  if (message?.type !== "PINPOINT_STATUS") return;
-  void syncToolbar()
-    .then(() => sendResponse({ mounted: !!document.querySelector("[data-agentation-toolbar]") }))
+  if (message?.type !== "PINPOINT_STATUS" && message?.type !== "PINPOINT_SHOW") return;
+  void showToolbar()
+    .then((mounted) => sendResponse({ mounted }))
     .catch((error) => sendResponse({ mounted: false, error: error instanceof Error ? error.message : "Mount failed" }));
   return true;
 };
@@ -82,4 +103,4 @@ chrome.storage.onChanged.addListener(state.storageListener);
 chrome.runtime.onMessage.addListener(state.messageListener);
 window.addEventListener("pageshow", state.pageShowListener);
 
-void syncToolbar();
+void showToolbar();

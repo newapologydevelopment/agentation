@@ -17,11 +17,18 @@ export default defineManifest({
   },
   action: {
     default_title: "Pinpoint Studio Feedback",
-    default_popup: "src/popup/index.html",
     default_icon: {
       16: "icons/icon-16.png",
       32: "icons/icon-32.png",
     },
+  },
+  background: {
+    service_worker: "src/background.ts",
+    type: "module",
+  },
+  options_ui: {
+    page: "src/popup/index.html",
+    open_in_tab: false,
   },
   content_scripts: [
     {
