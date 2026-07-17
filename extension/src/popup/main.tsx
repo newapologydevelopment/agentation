@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   DEFAULT_SETTINGS,
+  isOriginEnabled,
   isSupportedPage,
   readSettings,
   type ExtensionSettings,
@@ -27,7 +28,7 @@ function App() {
   const supported = isSupportedPage(tabUrl);
   const origin = useMemo(() => supported ? new URL(tabUrl).origin : "", [supported, tabUrl]);
   const hostname = useMemo(() => supported ? new URL(tabUrl).hostname : "This page", [supported, tabUrl]);
-  const enabled = supported && settings.enabledOrigins[origin] === true;
+  const enabled = supported && isOriginEnabled(settings, origin);
 
   useEffect(() => {
     Promise.all([
@@ -40,8 +41,29 @@ function App() {
       setTabId(tabs[0]?.id);
       setReady(true);
       void checkConnection(stored.serverEndpoint);
+      if (tabs[0]?.id !== undefined && isSupportedPage(tabs[0]?.url) && isOriginEnabled(stored, new URL(tabs[0].url).origin)) {
+        void ensureToolbar(tabs[0].id, false);
+      }
     });
   }, []);
+
+  async function ensureToolbar(targetTabId: number, announce = true): Promise<void> {
+    try {
+      const files = chrome.runtime.getManifest().content_scripts?.flatMap((script) => script.js ?? []) ?? [];
+      if (files.length === 0) throw new Error("Content script is missing");
+      await chrome.scripting.executeScript({ target: { tabId: targetTabId }, files });
+
+      let result: { mounted?: boolean; error?: string } | undefined;
+      for (let attempt = 0; attempt < 6 && !result?.mounted; attempt++) {
+        await new Promise((resolve) => window.setTimeout(resolve, 100));
+        result = await chrome.tabs.sendMessage(targetTabId, { type: "PINPOINT_STATUS" }).catch(() => undefined);
+      }
+      if (!result?.mounted) throw new Error(result?.error || "Toolbar did not mount");
+      if (announce) setMessage("Toolbar is visible at the bottom-right.");
+    } catch {
+      if (announce) setMessage("Chrome could not add the toolbar here. Reload this tab and try again.");
+    }
+  }
 
   async function checkConnection(endpoint: string): Promise<void> {
     setConnection("checking");
@@ -64,15 +86,7 @@ function App() {
     setSettings(next);
     await writeSettings(next);
     if (!enabled && tabId !== undefined) {
-      try {
-        const files = chrome.runtime.getManifest().content_scripts?.flatMap((script) => script.js ?? []) ?? [];
-        if (files.length > 0) {
-          await chrome.scripting.executeScript({ target: { tabId }, files });
-        }
-        setMessage("Toolbar is ready on this page.");
-      } catch {
-        setMessage("Toolbar enabled. Reload this page once to show it.");
-      }
+      await ensureToolbar(tabId);
     } else {
       setMessage("Toolbar hidden on this site.");
     }
@@ -141,7 +155,7 @@ function App() {
       {message && <p className="message" role="status">{message}</p>}
 
       <footer>
-        <span>Enable this site, then close the popup. The toolbar appears at the bottom-right.</span>
+        <span>Pinpoint appears automatically on web pages. Use the switch to hide it on this site.</span>
       </footer>
     </main>
   );

@@ -12,6 +12,10 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   serverEndpoint: DEFAULT_SERVER_ENDPOINT,
 };
 
+export function isOriginEnabled(settings: ExtensionSettings, origin: string): boolean {
+  return settings.enabledOrigins[origin] !== false;
+}
+
 export async function readSettings(): Promise<ExtensionSettings> {
   const stored = await chrome.storage.sync.get(STORAGE_KEY);
   const value = stored[STORAGE_KEY] as Partial<ExtensionSettings> | undefined;
