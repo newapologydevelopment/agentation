@@ -1,12 +1,12 @@
 {
   "name": "pinpoint-studio-feedback-extension",
-  "version": "0.1.3",
+  "version": "0.1.5",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build:agentation": "npm --prefix ../package run build",
-    "build": "npm run build:agentation && tsc --noEmit && vite build",
+    "build": "npm run build:agentation && tsc --noEmit && vite build && node scripts/finalize-build.mjs",
     "package": "npm run build && node -e \"require('node:fs').rmSync('pinpoint-studio-feedback.zip', { force: true })\" && cd dist && zip -qr ../pinpoint-studio-feedback.zip ."
   },
   "dependencies": {

@@ -9,11 +9,13 @@ export default defineConfig({
   plugins: [react(), crx({ manifest })],
   resolve: {
     alias: {
-      "agentation-src": fileURLToPath(new URL("../package/dist/index.mjs", import.meta.url)),
+      "agentation-src": fileURLToPath(new URL("../package/src/index.ts", import.meta.url)),
     },
+    dedupe: ["react", "react-dom"],
   },
   define: {
     __VERSION__: JSON.stringify(packageJson.version),
+    "process.env.NODE_ENV": JSON.stringify("production"),
   },
   build: {
     outDir: "dist",
