@@ -1,6 +1,6 @@
 {
   "name": "pinpoint-studio-feedback-extension",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -23,6 +23,6 @@
     "@vitejs/plugin-react": "^5.2.0",
     "sass": "^1.97.3",
     "typescript": "^5.9.3",
-    "vite": "^8.1.5"
+    "vite": "6.4.3"
   }
 }
