@@ -1,0 +1,28 @@
+.pinpoint-notes { position: fixed; right: 20px; bottom: 76px; z-index: 100004; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #f5f5f5; }
+.pinpoint-notes button, .pinpoint-notes textarea { font: inherit; }
+.pinpoint-notes-tab { display: flex; align-items: center; gap: 8px; margin-left: auto; padding: 8px 11px; border: 1px solid rgba(255,255,255,.14); border-radius: 999px; color: #fff; background: #1a1a1a; box-shadow: 0 4px 16px rgba(0,0,0,.24); cursor: pointer; font-size: 12px; font-weight: 650; }
+.pinpoint-notes-tab b { display: grid; min-width: 18px; height: 18px; place-items: center; padding: 0 5px; border-radius: 999px; color: #111; background: #fff; font-size: 10px; }
+.pinpoint-notes-panel { width: min(380px, calc(100vw - 40px)); max-height: min(570px, calc(100vh - 130px)); margin-bottom: 9px; overflow: hidden; border: 1px solid rgba(255,255,255,.12); border-radius: 16px; background: rgba(25,25,25,.97); box-shadow: 0 18px 55px rgba(0,0,0,.36); backdrop-filter: blur(22px) saturate(130%); }
+.pinpoint-notes-panel > header { display: flex; align-items: center; justify-content: space-between; padding: 14px 15px; border-bottom: 1px solid rgba(255,255,255,.08); }
+.pinpoint-notes-panel > header div { display: grid; gap: 2px; }
+.pinpoint-notes-panel > header span { color: #898989; font-size: 9px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+.pinpoint-notes-panel > header strong { font-size: 14px; }
+.pinpoint-notes-panel > header button { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 8px; color: #aaa; background: transparent; cursor: pointer; font-size: 20px; }
+.pinpoint-notes-list { max-height: 470px; overflow: auto; padding: 8px; }
+.pinpoint-notes-list article { padding: 11px; border-radius: 11px; background: rgba(255,255,255,.045); }
+.pinpoint-notes-list article + article { margin-top: 7px; }
+.pinpoint-note-meta { display: grid; grid-template-columns: 20px minmax(0,1fr); align-items: center; gap: 6px; }
+.pinpoint-note-meta b { display: grid; width: 18px; height: 18px; place-items: center; border-radius: 50%; color: #fff; background: #1688f8; font-size: 9px; }
+.pinpoint-note-meta span { overflow: hidden; font-size: 11px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.pinpoint-note-meta small { grid-column: 2; overflow: hidden; color: #777; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.pinpoint-notes-list p { margin: 9px 0; color: #ddd; font-size: 12px; line-height: 1.45; white-space: pre-wrap; }
+.pinpoint-notes-list textarea { width: 100%; min-height: 82px; margin-top: 9px; padding: 9px; resize: vertical; border: 1px solid #1688f8; border-radius: 8px; outline: none; color: #fff; background: #101010; font-size: 12px; line-height: 1.4; }
+.pinpoint-note-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.pinpoint-note-actions button, .pinpoint-notes-panel > footer button { padding: 6px 9px; border: 0; border-radius: 7px; color: #aaa; background: rgba(255,255,255,.07); cursor: pointer; font-size: 10px; font-weight: 650; }
+.pinpoint-note-actions button.primary { color: #fff; background: #1688f8; }
+.pinpoint-note-actions button.danger, .pinpoint-notes-panel > footer button { color: #ff8c86; }
+.pinpoint-note-actions button:disabled { cursor: not-allowed; opacity: .45; }
+.pinpoint-notes-empty { padding: 30px 18px; color: #888; text-align: center; font-size: 11px; line-height: 1.5; }
+.pinpoint-notes-panel > footer { padding: 9px 12px 12px; border-top: 1px solid rgba(255,255,255,.07); text-align: right; }
+@media (hover:hover) and (pointer:fine) { .pinpoint-notes button:hover { background-color: rgba(255,255,255,.12); } .pinpoint-note-actions button.primary:hover { background-color: #2794ff; } }
+@media (prefers-reduced-motion:reduce) { .pinpoint-notes * { scroll-behavior: auto !important; transition: none !important; } }

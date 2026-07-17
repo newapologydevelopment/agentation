@@ -26,10 +26,11 @@ The unpacked extension is written to `extension/dist`.
 ## Use
 
 1. Open or reload the page you want to review.
-2. Use the floating Pinpoint toolbar at the bottom-right.
-3. Add feedback, then use the **N** action to select a Notion page and export.
+2. Click the Pinpoint extension icon whenever you want to show or hide the floating toolbar.
+3. Add feedback, then use the **Notes** tab to review, edit, or delete notes saved on the current site.
+4. Use the **N** action to select a Notion page and export.
 
-Clicking the Pinpoint extension icon immediately restores and expands the toolbar on the active page. It does not open an intermediate popup. Companion-server settings remain available from the extension's **Options** entry in Chrome.
+The toolbar still appears immediately the first time the extension runs on a site. After that, every extension-icon click toggles the toolbar in place; it never opens an intermediate popup. Companion-server settings remain available from the extension's **Options** entry in Chrome.
 
 The source build defaults to a local companion at `http://localhost:4747`. A hosted endpoint can be embedded at build time with `VITE_PINPOINT_ENDPOINT`.
 

@@ -1,26 +1,15 @@
-import type { ExtensionSettings } from "./settings";
-
 const SHOW_MESSAGE = { type: "PINPOINT_SHOW" };
+const TOGGLE_MESSAGE = { type: "PINPOINT_TOGGLE" };
 
 function isWebPage(url: string | undefined): url is string {
   return !!url && (url.startsWith("http://") || url.startsWith("https://"));
 }
 
-async function showToolbar(tab: chrome.tabs.Tab): Promise<void> {
+async function toggleToolbar(tab: chrome.tabs.Tab): Promise<void> {
   if (tab.id === undefined || !isWebPage(tab.url)) return;
 
-  const origin = new URL(tab.url).origin;
-  const stored = await chrome.storage.sync.get("pinpointStudioFeedback");
-  const settings = (stored.pinpointStudioFeedback ?? {}) as Partial<ExtensionSettings>;
-  await chrome.storage.sync.set({
-    pinpointStudioFeedback: {
-      ...settings,
-      enabledOrigins: { ...(settings.enabledOrigins ?? {}), [origin]: true },
-    },
-  });
-
   try {
-    await chrome.tabs.sendMessage(tab.id, SHOW_MESSAGE);
+    await chrome.tabs.sendMessage(tab.id, TOGGLE_MESSAGE);
     return;
   } catch {
     const files = chrome.runtime.getManifest().content_scripts?.flatMap((script) => script.js ?? []) ?? [];
@@ -31,4 +20,4 @@ async function showToolbar(tab: chrome.tabs.Tab): Promise<void> {
   }
 }
 
-chrome.action.onClicked.addListener((tab) => void showToolbar(tab));
+chrome.action.onClicked.addListener((tab) => void toggleToolbar(tab));
